@@ -20,7 +20,7 @@ int main(int argc, char const *argv[])
 
     std::shared_ptr<Camera> cam = std::make_shared<Camera>(90, .001, 100);
 
-    Renderer renderer = Renderer(6, {512, 512});
+    Renderer renderer = Renderer(6, {600, 600}, {128, 128});
 
     clock_t begin = clock();
     renderer.render(scene, cam);
@@ -31,6 +31,14 @@ int main(int argc, char const *argv[])
 
     std::cout << renderer.getComputed() << std::endl;
     spdlog::info("Rendered in {}s", double(end - begin) / CLOCKS_PER_SEC);
+
+    Mat img = renderer.getOutput().get()->getAlbedo();
+
+    namedWindow("Display window", WINDOW_AUTOSIZE);
+
+    imshow("Display window", img);
+
+    waitKey(0);
 
     return 0;
 }

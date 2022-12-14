@@ -27,10 +27,10 @@ namespace Glucose
         Renderer(const uint thread_count, const Size size);
         Renderer(const uint thread_count, const Size size, const Size region_size);
         bool render(std::shared_ptr<const Scene> scene, std::shared_ptr<const Camera> camera);
-        std::shared_ptr<const Frame> getOutput() { return output; }
         bool renderFinished();
 
-        Mat getComputed() { return computed; }
+        Mat getComputed() const { return computed; }
+        std::shared_ptr<const Frame> getOutput() const { return output; }
 
     private:
         std::shared_ptr<Frame> output;
@@ -50,8 +50,8 @@ namespace Glucose
 
         void renderThread(const int id);
 
-        std::mutex request_lock;
-        bool requestRegion(const int thread_id, Vec2i &start, Vec2i &end);
+        std::mutex request_mutex;
+        bool requestRegion(const int thread_id, Size &start, Size &end);
         bool requestObjectsInRegion(const int thread_id, const Vec2i start, const Vec2i end, std::vector<std::shared_ptr<const Object>> &objects);
         
 
