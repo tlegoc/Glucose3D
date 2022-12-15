@@ -53,7 +53,7 @@ namespace Glucose
         std::mutex request_mutex;
         bool requestRegion(const int thread_id, Size &start, Size &end);
         bool requestObjectsInRegion(const int thread_id, const Vec2i start, const Vec2i end, std::vector<std::shared_ptr<const Object>> &objects);
-        
+        void clearThreads();
 
     };
 }

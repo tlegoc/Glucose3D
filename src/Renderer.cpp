@@ -39,6 +39,8 @@ bool Renderer::render(std::shared_ptr<const Scene> scene, std::shared_ptr<const 
         return false;
     }
 
+    clearThreads();
+
     this->current_scene = scene;
     this->current_camera = camera;
 
@@ -69,21 +71,32 @@ bool Renderer::render(std::shared_ptr<const Scene> scene, std::shared_ptr<const 
 
 void Renderer::renderThread(const int id)
 {
+    // Random color that will distinguish the thread
     Vec3f color = Vec3f(static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                         static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                         static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
 
+    // Wait for all threads to be created
     spdlog::info("Waiting for rendering to start...");
     while (!threads_all_ready)
     {
     };
 
+    // Sets thread status
     spdlog::info("Rendering started on thread {}.", id);
     threads_render_status[id] = RenderStatus::Running;
 
+    // Start and end pos of the region that will be rendered
     Size start, end;
+    // Objects to be used.
+    // We wont run the algorithm on the full object list as it will take 
+    // too much time. Instead we request for objects that will be seen
+    // From the pov of the ray.
+    // Note that this breaks the closest distance mesured values, as some objects
+    // Might be right next to the region but not used in calculations.
     std::vector<std::shared_ptr<const Object>> objects;
 
+    // As long as we have regions to render
     while (requestRegion(id, start, end))
     {
         spdlog::info("Thread {} rendering region: (start: {}:{}, end: {}:{})", id, start.width, start.height, end.width,
@@ -92,12 +105,14 @@ void Renderer::renderThread(const int id)
         // if (!requestObjectsInRegion(id, start, end, objects))
         // continue;
 
-        // Create a matrix of the correct and cropped region size and fill it with the color
+        // Create a matrix of the correct region size
+        // Avoids all threads writing to the same matrix
         Mat region = Mat::zeros(end - start, CV_32FC3);
         for (int i = 0; i < region.size().width; i++)
         {
             for (int j = 0; j < region.size().height; j++)
             {
+                // Calculations
                 region.at<Vec3f>(j, i) = color;
             }
         }
@@ -111,6 +126,10 @@ void Renderer::renderThread(const int id)
     spdlog::info("Rendering finished on thread {}.", id);
 }
 
+/**
+ * Loop through all active threads and returns true if all threads
+ * have status "finished"
+*/
 bool Renderer::renderFinished()
 {
     for (RenderStatus rs : threads_render_status)
@@ -160,4 +179,13 @@ bool Renderer::requestObjectsInRegion(const int thread_id, const Vec2i start, co
 {
 
     return false;
+}
+
+void Renderer::clearThreads() {
+    for (auto t : threads) {
+        t->~thread();
+    }
+
+    threads = {};
+    threads_render_status = {};
 }
