@@ -12,10 +12,10 @@ namespace Glucose
         private:
 
         public: 
-            Vec3d position;
-            Vec3d rotation;
-            Vec3d scale;
+            Point3f position;
+            Point3f rotation;
+            Point3f scale;
 
-            virtual long double getDistanceFromCamera(Vec3d cameraPosition) = 0;
+            virtual long double getDistanceFromCamera(Point3f cameraPosition) = 0;
     };
 };

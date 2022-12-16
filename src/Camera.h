@@ -22,10 +22,18 @@ namespace Glucose
         float getNearPlane();
         void setFarPlane(float farPlane);
         float getFarPlane();
+        void setPos(Point3f pos);
+        Point3f getPos();
+        void setRot(Point3f rot);
+        Point3f getRot();
+
+        Point3f getRayDirection(const Size position, const Size size);
 
     private:
         float fov;
         float nearPlane;
         float farPlane;
+        Point3f pos;
+        Point3f rot;
     };
 }

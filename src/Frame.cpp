@@ -6,7 +6,6 @@ Frame::Frame(int width, int height)
 {
     this->size = Size(width, height);
     this->final = std::make_shared<Mat>(height, width, CV_8UC3);
-    this->image = std::make_shared<Mat>(height, width, CV_8UC3);
     this->depth = std::make_shared<Mat>(height, width, CV_32FC1);
     this->normals = std::make_shared<Mat>(height, width, CV_32FC3);
     this->albedo = std::make_shared<Mat>(height, width, CV_32FC3);
@@ -20,7 +19,6 @@ Frame::Frame(Size size)
 {
     this->size = size;
     this->final = std::make_shared<Mat>(size.height, size.width, CV_8UC3);
-    this->image = std::make_shared<Mat>(size.height, size.width, CV_8UC3);
     this->depth = std::make_shared<Mat>(size.height, size.width, CV_32FC1);
     this->normals = std::make_shared<Mat>(size.height, size.width, CV_32FC3);
     this->albedo = std::make_shared<Mat>(size.height, size.width, CV_32FC3);

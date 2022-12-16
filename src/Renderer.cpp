@@ -50,7 +50,7 @@ bool Renderer::render(std::shared_ptr<const Scene> scene, std::shared_ptr<const 
         try
         {
             spdlog::warn("Creating thread {}", i);
-            std::thread *t = new std::thread(&Renderer::renderThread, this, i);
+            std::shared_ptr<std::thread> t = std::make_shared<std::thread>(&Renderer::renderThread, this, i);
             threads.push_back(t);
             threads_render_status.push_back(RenderStatus::Waiting);
         }
@@ -72,15 +72,14 @@ bool Renderer::render(std::shared_ptr<const Scene> scene, std::shared_ptr<const 
 void Renderer::renderThread(const int id)
 {
     // Random color that will distinguish the thread
-    Vec3f color = Vec3f(static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
+    Point3f color = Point3f(static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                         static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
                         static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
 
     // Wait for all threads to be created
     spdlog::info("Waiting for rendering to start...");
     while (!threads_all_ready)
-    {
-    };
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Sets thread status
     spdlog::info("Rendering started on thread {}.", id);
@@ -89,7 +88,7 @@ void Renderer::renderThread(const int id)
     // Start and end pos of the region that will be rendered
     Size start, end;
     // Objects to be used.
-    // We wont run the algorithm on the full object list as it will take 
+    // We wont run the algorithm on the full object list as it will take
     // too much time. Instead we request for objects that will be seen
     // From the pov of the ray.
     // Note that this breaks the closest distance mesured values, as some objects
@@ -113,7 +112,7 @@ void Renderer::renderThread(const int id)
             for (int j = 0; j < region.size().height; j++)
             {
                 // Calculations
-                region.at<Vec3f>(j, i) = color;
+                region.at<Point3f>(j, i) = color;
             }
         }
 
@@ -129,7 +128,7 @@ void Renderer::renderThread(const int id)
 /**
  * Loop through all active threads and returns true if all threads
  * have status "finished"
-*/
+ */
 bool Renderer::renderFinished()
 {
     for (RenderStatus rs : threads_render_status)
@@ -181,9 +180,18 @@ bool Renderer::requestObjectsInRegion(const int thread_id, const Vec2i start, co
     return false;
 }
 
-void Renderer::clearThreads() {
-    for (auto t : threads) {
-        t->~thread();
+void Renderer::clearThreads()
+{
+    for (auto t : threads)
+    {
+        try
+        {
+            t->~thread();
+        }
+        catch (const std::exception &e)
+        {
+            spdlog::error("Failed to delete thread: {}", e.what());
+        }
     }
 
     threads = {};

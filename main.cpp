@@ -13,7 +13,7 @@ using namespace Glucose;
 int main(int argc, char const *argv[])
 {
     std::shared_ptr<Scene> scene = std::make_shared<Scene>();
-    std::shared_ptr<Sphere> sphere = std::make_shared<Sphere>(Vec3f(0, 0, 0), 1.0);
+    std::shared_ptr<Sphere> sphere = std::make_shared<Sphere>(Point3f(0, 0, 0), 1.0);
     scene.get()->addObject(sphere);
 
     std::shared_ptr<Camera> cam = std::make_shared<Camera>(90, .001, 100);
@@ -35,6 +35,9 @@ int main(int argc, char const *argv[])
     imshow("Display window", img);
 
     waitKey(0);
+
+    renderer.render(scene, cam);
+    while (!renderer.renderFinished());
 
     return 0;
 }

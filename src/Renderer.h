@@ -42,7 +42,7 @@ namespace Glucose
 
         bool threads_all_ready;
         const uint thread_count;
-        std::vector<std::thread*> threads;
+        std::vector<std::shared_ptr<std::thread>> threads;
         std::vector<RenderStatus> threads_render_status;
 
         std::shared_ptr<const Scene> current_scene;

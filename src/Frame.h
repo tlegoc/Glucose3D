@@ -30,19 +30,36 @@ namespace Glucose
         void setSize(Size size) { this->size = size; }
         Size getSize() const { return this->size; }
 
+        std::mutex final_mutex;
+        void writeFinal(const Size pos, const Mat values);
+        std::mutex depth_mutex;
+        void writeDepth(const Size pos, const Mat values);
+        std::mutex normals_mutex;
+        void writeNormals(const Size pos, const Mat values);
         std::mutex albedo_mutex;
         void writeAlbedo(const Size pos, const Mat values);
+        std::mutex specular_mutex;
+        void writeSpecular(const Size pos, const Mat values);
+        std::mutex roughness_mutex;
+        void writeRoughness(const Size pos, const Mat values);
+        std::mutex passes_mutex;
+        void writePasses(const Size pos, const Mat values);
+        std::mutex steps_mutex;
+        void writeSteps(const Size pos, const Mat values);
 
         Mat getFinal() const { return *final; }
-        Mat getImage() const { return *image; }
         Mat getDepth() const { return *depth; }
         Mat getNormals() const { return *normals; }
         Mat getAlbedo() const { return *albedo; }
+        Mat getSpecular() const { return *specular; }
+        Mat getRoughness() const { return *roughness; }
+        Mat getPasses() const { return *passes; }
+        Mat getSteps() const { return *steps; }
+
 
     private:
         Size size;
         std::shared_ptr<Mat> final;
-        std::shared_ptr<Mat> image;
         std::shared_ptr<Mat> depth;
         std::shared_ptr<Mat> normals;
         std::shared_ptr<Mat> albedo;

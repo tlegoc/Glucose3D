@@ -8,6 +8,8 @@ PUBLIC
     Frame.cpp
     Renderer.h
     Renderer.cpp
+    Maths.h
+    Maths.cpp
 )
 
 add_subdirectory(objects)

@@ -12,7 +12,7 @@ namespace Glucose {
             float radius;
 
         public:
-            Sphere(Vec3d position, float radius);
-            long double getDistanceFromCamera(Vec3d cameraPosition);
+            Sphere(Point3f position, float radius);
+            long double getDistanceFromCamera(Point3f cameraPosition);
     };
 };
