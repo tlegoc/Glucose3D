@@ -2,7 +2,6 @@
 
 #include <opencv2/core.hpp>
 
-
 using namespace cv;
 
 namespace Glucose
@@ -12,10 +11,10 @@ namespace Glucose
         private:
 
         public: 
-            Point3f position;
-            Point3f rotation;
-            Point3f scale;
+            Point3d position;
+            Point3d rotation;
+            Point3d scale;
 
-            virtual long double getDistanceFromCamera(Point3f cameraPosition) = 0;
+            virtual long double getDistance(Point3d pos) const = 0;
     };
 };

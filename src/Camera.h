@@ -14,26 +14,29 @@ namespace Glucose
     class Camera
     {
     public:
-        Camera(float fov, float nearPlane, float farPlane);
+        Camera(Size resolution, double fov, double nearPlane, double farPlane);
 
-        void setFOV(float fov);
-        float getFOV();
-        void setNearPlane(float nearPlane);
-        float getNearPlane();
-        void setFarPlane(float farPlane);
-        float getFarPlane();
-        void setPos(Point3f pos);
-        Point3f getPos();
-        void setRot(Point3f rot);
-        Point3f getRot();
+        void setFOV(double fov);
+        double getFOV() const;
+        void setNearPlane(double nearPlane);
+        double getNearPlane() const;
+        void setFarPlane(double farPlane);
+        double getFarPlane() const;
+        void setPos(Point3d pos);
+        Point3d getPos() const;
+        void setRot(Point3d rot);
+        Point3d getRot() const;
+        void setResolution(Size resolution);
+        Size getResolution() const;
 
-        Point3f getRayDirection(const Size position, const Size size);
+        Point3d getRayDirection(const Size position) const;
 
     private:
-        float fov;
-        float nearPlane;
-        float farPlane;
-        Point3f pos;
-        Point3f rot;
+        double fov;
+        double nearPlane;
+        double farPlane;
+        Point3d pos;
+        Point3d rot;
+        Size resolution;
     };
 }

@@ -4,31 +4,22 @@
 
 using namespace Glucose;
 
-Renderer::Renderer(const uint thread_count, const Size size) : Renderer::Renderer(thread_count, size, {128, 128})
-{
-}
-
-Renderer::Renderer(const uint thread_count, const Size size, const Size region_size) : thread_count(thread_count),
-                                                                                       region_size(region_size),
-                                                                                       region_count_x(roundUp(size.width, region_size.width) / region_size.width),
-                                                                                       region_count_y(roundUp(size.height, region_size.height) / region_size.height),
-                                                                                       output_size(size)
+Renderer::Renderer(const uint thread_count, const Size region_size, const double threshold, const double max_distance) : thread_count(thread_count),
+                                                                                                                         region_size(region_size),
+                                                                                                                         threshold(threshold),
+                                                                                                                         max_distance(max_distance)
 {
     if (thread_count < 1)
         throw std::invalid_argument("Thread count must be at least 1");
 
-    this->output = std::make_shared<Frame>(size);
     this->threads_all_ready = false;
-    this->computed = Mat::zeros(Size(region_count_x, region_count_y), CV_32SC1);
 
     spdlog::info("Created renderer with {} threads", thread_count);
-    spdlog::info("Region size: {}x{}", region_size.width, region_size.height);
-    spdlog::info("Region count: {}x{}", region_count_x, region_count_y);
-    spdlog::info("Output size: {}x{}", output_size.width, output_size.height);
-    spdlog::info("Computed size: {}x{}", computed.size().width, computed.size().height);
-    spdlog::info("Frame size: {}:{}",
-                 output.get()->getSize().width,
-                 output.get()->getSize().height);
+}
+
+Renderer::~Renderer()
+{
+    clearThreads();
 }
 
 bool Renderer::render(std::shared_ptr<const Scene> scene, std::shared_ptr<const Camera> camera)
@@ -43,6 +34,21 @@ bool Renderer::render(std::shared_ptr<const Scene> scene, std::shared_ptr<const 
 
     this->current_scene = scene;
     this->current_camera = camera;
+
+    region_count_x = roundUp(current_camera.get()->getResolution().width, region_size.width) / region_size.width;
+    region_count_y = roundUp(current_camera.get()->getResolution().height, region_size.height) / region_size.height;
+
+    this->output = std::make_shared<Frame>(current_camera.get()->getResolution());
+    this->computed = Mat::zeros(Size(region_count_x, region_count_y), CV_32SC1);
+
+    spdlog::info("Started rendering with {} threads", thread_count);
+    spdlog::info("Region size: {}x{}", region_size.width, region_size.height);
+    spdlog::info("Region count: {}x{}", region_count_x, region_count_y);
+    spdlog::info("Output size: {}x{}", current_camera.get()->getResolution().width, current_camera.get()->getResolution().height);
+    spdlog::info("Computed size: {}x{}", computed.size().width, computed.size().height);
+    spdlog::info("Frame size: {}x{}",
+                 output.get()->getSize().width,
+                 output.get()->getSize().height);
 
     spdlog::warn("Starting rendering...");
     for (int i = 0; i < thread_count; i++)
@@ -72,12 +78,12 @@ bool Renderer::render(std::shared_ptr<const Scene> scene, std::shared_ptr<const 
 void Renderer::renderThread(const int id)
 {
     // Random color that will distinguish the thread
-    Point3f color = Point3f(static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
-                        static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
-                        static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+    Vec3f color = Vec3f(static_cast<double>(rand()) / static_cast<double>(RAND_MAX),
+                        static_cast<double>(rand()) / static_cast<double>(RAND_MAX),
+                        static_cast<double>(rand()) / static_cast<double>(RAND_MAX));
 
     // Wait for all threads to be created
-    spdlog::info("Waiting for rendering to start...");
+    spdlog::info("Waiting for rendering to start (thread {})...", id);
     while (!threads_all_ready)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -98,31 +104,63 @@ void Renderer::renderThread(const int id)
     // As long as we have regions to render
     while (requestRegion(id, start, end))
     {
-        spdlog::info("Thread {} rendering region: (start: {}:{}, end: {}:{})", id, start.width, start.height, end.width,
-                     end.height);
+        spdlog::info("Thread {} rendering region.", id);
 
         // if (!requestObjectsInRegion(id, start, end, objects))
         // continue;
 
         // Create a matrix of the correct region size
         // Avoids all threads writing to the same matrix
-        Mat region = Mat::zeros(end - start, CV_32FC3);
-        for (int i = 0; i < region.size().width; i++)
+        Size thread_region_size = end - start;
+        Mat region_thread = Mat::zeros(thread_region_size, CV_32FC3);
+        Mat region_depth = Mat_<double>::zeros(thread_region_size);
+
+        Point3d origin = current_camera.get()->getPos();
+
+        std::vector<std::shared_ptr<Object>> objects = current_scene.get()->getObjects();
+
+        // Render the region
+        for (int i = 0; i < thread_region_size.width; i++)
         {
-            for (int j = 0; j < region.size().height; j++)
+            for (int j = 0; j < thread_region_size.height; j++)
             {
                 // Calculations
-                region.at<Point3f>(j, i) = color;
+                Point3d dir = current_camera.get()->getRayDirection(start + Size(i, j));
+                double distance = 0;
+
+                while (true)
+                {
+                    double closest = max_distance;
+                    for (auto object : objects)
+                    {
+                        double obj_dist = object.get()->getDistance(origin + dir * distance);
+                        if (obj_dist < closest)
+                        {
+                            closest = obj_dist;
+                        }
+                    }
+
+                    distance += closest;
+                    if (closest < threshold || distance > max_distance)
+                    {
+                        break;
+                    }
+                }
+
+                //spdlog::info("Thread {} rendered pixel {}x{} (d={})", id, i, j, distance);
+                region_depth.at<double>(j, i) = distance;
+                region_thread.at<Vec3f>(j, i) = color;
             }
         }
 
-        spdlog::info("Thread {} writing region.", id);
-        output.get()->writeAlbedo(start, region);
+        // output.get()->writeAlbedo(start, region);
+        output.get()->writeDepth(start, region_depth);
+        output.get()->writeThreads(start, region_thread);
         spdlog::info("Thread {} finished rendering region.", id);
     }
 
     threads_render_status[id] = RenderStatus::Finished;
-    spdlog::info("Rendering finished on thread {}.", id);
+    spdlog::warn("Thead {} idle.", id);
 }
 
 /**
@@ -143,7 +181,6 @@ bool Renderer::requestRegion(const int thread_id, Size &start, Size &end)
 {
     request_mutex.lock();
 
-    spdlog::info("Processing request for thread {}.", thread_id);
     bool found = false;
 
     for (int i = 0; i < computed.size().height; i++)
@@ -156,10 +193,10 @@ bool Renderer::requestRegion(const int thread_id, Size &start, Size &end)
                 // It needs to be cropped if it is outside the image
                 start = Size(j * region_size.width, i * region_size.height);
                 end = Size((j + 1) * region_size.width, (i + 1) * region_size.height);
-                if (end.width > output_size.width)
-                    end.width = output_size.width;
-                if (end.height > output_size.height)
-                    end.height = output_size.height;
+                if (end.width > current_camera.get()->getResolution().width)
+                    end.width = current_camera.get()->getResolution().width;
+                if (end.height > current_camera.get()->getResolution().height)
+                    end.height = current_camera.get()->getResolution().height;
 
                 found = true;
                 computed.at<int>(i, j) = thread_id + 1;

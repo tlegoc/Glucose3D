@@ -9,10 +9,10 @@ using namespace cv;
 namespace Glucose {
     class Sphere : public Object {
         private:
-            float radius;
+            double radius;
 
         public:
-            Sphere(Point3f position, float radius);
-            long double getDistanceFromCamera(Point3f cameraPosition);
+            Sphere(Point3d position, double radius);
+            long double getDistance(Point3d pos) const;
     };
 };

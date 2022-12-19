@@ -24,8 +24,8 @@ namespace Glucose
     class Renderer
     {
     public:
-        Renderer(const uint thread_count, const Size size);
-        Renderer(const uint thread_count, const Size size, const Size region_size);
+        Renderer(const uint thread_count, const Size region_size = {128, 128}, const double threshold = 0.001, const double max_distance = 1000);
+        ~Renderer();
         bool render(std::shared_ptr<const Scene> scene, std::shared_ptr<const Camera> camera);
         bool renderFinished();
 
@@ -34,10 +34,11 @@ namespace Glucose
 
     private:
         std::shared_ptr<Frame> output;
-        const Size output_size;
-        const Size region_size;
-        const int region_count_x;
-        const int region_count_y;
+        Size region_size;
+        int region_count_x;
+        int region_count_y;
+        const double threshold;
+        const double max_distance;
         Mat computed;
 
         bool threads_all_ready;

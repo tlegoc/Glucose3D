@@ -7,18 +7,6 @@ using namespace cv;
 namespace Glucose
 {
 
-    enum Pass
-    {
-        Image,
-        Depth,
-        Normals,
-        Albedo,
-        Specular,
-        Roughness,
-        Passes,
-        Steps
-    };
-
     struct Frame
     {
 
@@ -30,10 +18,10 @@ namespace Glucose
         void setSize(Size size) { this->size = size; }
         Size getSize() const { return this->size; }
 
-        std::mutex final_mutex;
-        void writeFinal(const Size pos, const Mat values);
         std::mutex depth_mutex;
         void writeDepth(const Size pos, const Mat values);
+        std::mutex threads_mutex;
+        void writeThreads(const Size pos, const Mat values);
         std::mutex normals_mutex;
         void writeNormals(const Size pos, const Mat values);
         std::mutex albedo_mutex;
@@ -47,8 +35,10 @@ namespace Glucose
         std::mutex steps_mutex;
         void writeSteps(const Size pos, const Mat values);
 
+
         Mat getFinal() const { return *final; }
         Mat getDepth() const { return *depth; }
+        Mat getThreads() const { return *threads; }
         Mat getNormals() const { return *normals; }
         Mat getAlbedo() const { return *albedo; }
         Mat getSpecular() const { return *specular; }
@@ -61,6 +51,7 @@ namespace Glucose
         Size size;
         std::shared_ptr<Mat> final;
         std::shared_ptr<Mat> depth;
+        std::shared_ptr<Mat> threads;
         std::shared_ptr<Mat> normals;
         std::shared_ptr<Mat> albedo;
         std::shared_ptr<Mat> specular;
