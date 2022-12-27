@@ -21,10 +21,18 @@ namespace Glucose
         Finished
     };
 
+    struct RaySettings {
+        Point3d origin;
+        Point3d direction;
+        double far;
+        double threshold;
+        std::vector<std::shared_ptr<Object>> objects;
+    };
+
     class Renderer
     {
     public:
-        Renderer(const uint thread_count, const Size region_size = {128, 128}, const double threshold = 0.001, const double max_distance = 1000);
+        Renderer(const uint thread_count, const Size region_size = {128, 128});
         ~Renderer();
         bool render(std::shared_ptr<const Scene> scene, std::shared_ptr<const Camera> camera);
         bool renderFinished();
@@ -37,8 +45,6 @@ namespace Glucose
         Size region_size;
         int region_count_x;
         int region_count_y;
-        const double threshold;
-        const double max_distance;
         Mat computed;
 
         bool threads_all_ready;
@@ -55,6 +61,7 @@ namespace Glucose
         bool requestRegion(const int thread_id, Size &start, Size &end);
         bool requestObjectsInRegion(const int thread_id, const Vec2i start, const Vec2i end, std::vector<std::shared_ptr<const Object>> &objects);
         void clearThreads();
+        bool ray(RaySettings settings, double &distance, std::shared_ptr<const Object> &out_close_object, Point3d &normal);
 
     };
 }

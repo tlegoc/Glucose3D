@@ -4,10 +4,8 @@
 
 using namespace Glucose;
 
-Renderer::Renderer(const uint thread_count, const Size region_size, const double threshold, const double max_distance) : thread_count(thread_count),
-                                                                                                                         region_size(region_size),
-                                                                                                                         threshold(threshold),
-                                                                                                                         max_distance(max_distance)
+Renderer::Renderer(const uint thread_count, const Size region_size) : thread_count(thread_count),
+                                                                                              region_size(region_size)
 {
     if (thread_count < 1)
         throw std::invalid_argument("Thread count must be at least 1");
@@ -117,7 +115,9 @@ void Renderer::renderThread(const int id)
 
         Point3d origin = current_camera.get()->getPos();
 
+        //Cache
         std::vector<std::shared_ptr<Object>> objects = current_scene.get()->getObjects();
+        double far = current_camera.get()->getFarPlane();
 
         // Render the region
         for (int i = 0; i < thread_region_size.width; i++)
@@ -126,28 +126,21 @@ void Renderer::renderThread(const int id)
             {
                 // Calculations
                 Point3d dir = current_camera.get()->getRayDirection(start + Size(i, j));
-                double distance = 0;
+                double distance;
+                std::shared_ptr<const Object> hit_obj;
+                Point3d normal;
 
-                while (true)
-                {
-                    double closest = max_distance;
-                    for (auto object : objects)
-                    {
-                        double obj_dist = object.get()->getDistance(origin + dir * distance);
-                        if (obj_dist < closest)
-                        {
-                            closest = obj_dist;
-                        }
-                    }
+                RaySettings ray_settings {
+                    .origin = origin,
+                    .direction = dir,
+                    .far = far,
+                    .threshold = 0.0001,
+                    .objects = objects
+                };
 
-                    distance += closest;
-                    if (closest < threshold || distance > max_distance)
-                    {
-                        break;
-                    }
-                }
+                ray(ray_settings, distance, hit_obj, normal);
 
-                //spdlog::info("Thread {} rendered pixel {}x{} (d={})", id, i, j, distance);
+                // spdlog::info("Thread {} rendered pixel {}x{} (d={})", id, i, j, distance);
                 region_depth.at<double>(j, i) = distance;
                 region_thread.at<Vec3f>(j, i) = color;
             }
@@ -233,4 +226,36 @@ void Renderer::clearThreads()
 
     threads = {};
     threads_render_status = {};
+}
+
+bool Renderer::ray(RaySettings settings, double &distance, std::shared_ptr<const Object> &out_close_object, Point3d &normal)
+{
+    distance = 0;
+    while (true)
+    {
+        double closest_distance = settings.far;
+        std::shared_ptr<const Object> closest_obj;
+        for (auto object : settings.objects)
+        {
+            double obj_dist = object.get()->getDistance(settings.origin + settings.direction * distance);
+            if (obj_dist < closest_distance)
+            {
+                closest_obj = object;
+                closest_distance = obj_dist;
+            }
+        }
+
+        distance += closest_distance;
+        if (closest_distance < settings.threshold)
+        {
+            out_close_object = closest_obj;
+            break;
+        }
+        else if (distance > settings.far)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }

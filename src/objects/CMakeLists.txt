@@ -4,4 +4,6 @@ PUBLIC
     Object.h
     Sphere.cpp
     Sphere.h
+    InfiniteSpheres.cpp
+    InfiniteSpheres.h
 )
