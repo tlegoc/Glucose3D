@@ -15,14 +15,14 @@ int main(int argc, char const *argv[])
 {
     std::shared_ptr<Scene> scene = std::make_shared<Scene>();
     std::shared_ptr<Object> sphere = std::make_shared<Sphere>(Point3d(0, 0, 0), 1);
-    scene.get()->addObject(sphere);
+    scene->addObject(sphere);
 
     std::shared_ptr<Camera> cam = std::make_shared<Camera>(Size(128, 128), 90, .001, 1000);
-    cam.get()->setPos(Point3d(0, 0, -5));
+    cam->setPos(Point3d(0, 0, -5));
 
     Renderer renderer = Renderer(6, {16, 16});
 
-    spdlog::info("Object count: {}", scene.get()->getObjects().size());
+    spdlog::info("Object count: {}", scene->getObjects().size());
     renderer.render(scene, cam);
     clock_t begin = clock();
     while (!renderer.renderFinished())
@@ -34,7 +34,7 @@ int main(int argc, char const *argv[])
 
     spdlog::info("Rendered in {}s", double(end - begin) / CLOCKS_PER_SEC);
 
-    Mat img = renderer.getOutput().get()->getDepth();
+    Mat img = renderer.getOutput()->getDepth();
 
     imwrite("test.bmp", img);
 

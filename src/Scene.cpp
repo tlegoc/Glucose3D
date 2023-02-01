@@ -18,7 +18,7 @@ double Scene::closestDistance(std::vector<std::shared_ptr<const Object>> objects
     double closest = INFINITY;
     for (auto object : objects)
     {
-        double distance = object.get()->getDistance(pos);
+        double distance = object->getDistance(pos);
         if (distance < closest)
         {
             closest = distance;

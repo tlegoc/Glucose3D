@@ -5,7 +5,7 @@
 using namespace Glucose;
 
 Renderer::Renderer(const uint thread_count, const Size region_size) : thread_count(thread_count),
-                                                                                              region_size(region_size)
+                                                                      region_size(region_size)
 {
     if (thread_count < 1)
         throw std::invalid_argument("Thread count must be at least 1");
@@ -33,20 +33,20 @@ bool Renderer::render(std::shared_ptr<const Scene> scene, std::shared_ptr<const 
     this->current_scene = scene;
     this->current_camera = camera;
 
-    region_count_x = roundUp(current_camera.get()->getResolution().width, region_size.width) / region_size.width;
-    region_count_y = roundUp(current_camera.get()->getResolution().height, region_size.height) / region_size.height;
+    region_count_x = roundUp(current_camera->getResolution().width, region_size.width) / region_size.width;
+    region_count_y = roundUp(current_camera->getResolution().height, region_size.height) / region_size.height;
 
-    this->output = std::make_shared<Frame>(current_camera.get()->getResolution());
+    this->output = std::make_shared<Frame>(current_camera->getResolution());
     this->computed = Mat::zeros(Size(region_count_x, region_count_y), CV_32SC1);
 
     spdlog::info("Started rendering with {} threads", thread_count);
     spdlog::info("Region size: {}x{}", region_size.width, region_size.height);
     spdlog::info("Region count: {}x{}", region_count_x, region_count_y);
-    spdlog::info("Output size: {}x{}", current_camera.get()->getResolution().width, current_camera.get()->getResolution().height);
+    spdlog::info("Output size: {}x{}", current_camera->getResolution().width, current_camera->getResolution().height);
     spdlog::info("Computed size: {}x{}", computed.size().width, computed.size().height);
     spdlog::info("Frame size: {}x{}",
-                 output.get()->getSize().width,
-                 output.get()->getSize().height);
+                 output->getSize().width,
+                 output->getSize().height);
 
     spdlog::warn("Starting rendering...");
     for (int i = 0; i < thread_count; i++)
@@ -113,11 +113,11 @@ void Renderer::renderThread(const int id)
         Mat region_thread = Mat::zeros(thread_region_size, CV_32FC3);
         Mat region_depth = Mat_<double>::zeros(thread_region_size);
 
-        Point3d origin = current_camera.get()->getPos();
+        Point3d origin = current_camera->getPos();
 
-        //Cache
-        std::vector<std::shared_ptr<Object>> objects = current_scene.get()->getObjects();
-        double far = current_camera.get()->getFarPlane();
+        // Cache
+        std::vector<std::shared_ptr<Object>> objects = current_scene->getObjects();
+        double far = current_camera->getFarPlane();
 
         // Render the region
         for (int i = 0; i < thread_region_size.width; i++)
@@ -125,18 +125,17 @@ void Renderer::renderThread(const int id)
             for (int j = 0; j < thread_region_size.height; j++)
             {
                 // Calculations
-                Point3d dir = current_camera.get()->getRayDirection(start + Size(i, j));
+                Point3d dir = current_camera->getRayDirection(start + Size(i, j));
                 double distance;
                 std::shared_ptr<const Object> hit_obj;
                 Point3d normal;
 
-                RaySettings ray_settings {
+                RaySettings ray_settings{
                     .origin = origin,
                     .direction = dir,
                     .far = far,
                     .threshold = 0.0001,
-                    .objects = objects
-                };
+                    .objects = objects};
 
                 ray(ray_settings, distance, hit_obj, normal);
 
@@ -146,9 +145,9 @@ void Renderer::renderThread(const int id)
             }
         }
 
-        // output.get()->writeAlbedo(start, region);
-        output.get()->writeDepth(start, region_depth);
-        output.get()->writeThreads(start, region_thread);
+        // output->writeAlbedo(start, region);
+        output->writeDepth(start, region_depth);
+        output->writeThreads(start, region_thread);
         spdlog::info("Thread {} finished rendering region.", id);
     }
 
@@ -186,10 +185,10 @@ bool Renderer::requestRegion(const int thread_id, Size &start, Size &end)
                 // It needs to be cropped if it is outside the image
                 start = Size(j * region_size.width, i * region_size.height);
                 end = Size((j + 1) * region_size.width, (i + 1) * region_size.height);
-                if (end.width > current_camera.get()->getResolution().width)
-                    end.width = current_camera.get()->getResolution().width;
-                if (end.height > current_camera.get()->getResolution().height)
-                    end.height = current_camera.get()->getResolution().height;
+                if (end.width > current_camera->getResolution().width)
+                    end.width = current_camera->getResolution().width;
+                if (end.height > current_camera->getResolution().height)
+                    end.height = current_camera->getResolution().height;
 
                 found = true;
                 computed.at<int>(i, j) = thread_id + 1;
@@ -237,7 +236,7 @@ bool Renderer::ray(RaySettings settings, double &distance, std::shared_ptr<const
         std::shared_ptr<const Object> closest_obj;
         for (auto object : settings.objects)
         {
-            double obj_dist = object.get()->getDistance(settings.origin + settings.direction * distance);
+            double obj_dist = object->getDistance(settings.origin + settings.direction * distance);
             if (obj_dist < closest_distance)
             {
                 closest_obj = object;
