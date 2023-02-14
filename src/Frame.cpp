@@ -9,7 +9,7 @@ Frame::Frame(int width, int height) : Frame(Size(width, height))
 Frame::Frame(Size size)
 {
     this->size = size;
-    this->final = std::make_shared<Mat>(size, CV_8UC3);
+    this->final = std::make_shared<Mat>(size, CV_32FC3);
     this->depth = std::make_shared<Mat_<double>>(size);
     this->normals = std::make_shared<Mat>(size, CV_32FC3);
     this->threads = std::make_shared<Mat>(size, CV_32FC3);

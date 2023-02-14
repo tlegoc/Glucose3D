@@ -112,6 +112,8 @@ void Renderer::renderThread(const int id)
         Size thread_region_size = end - start;
         Mat region_thread = Mat::zeros(thread_region_size, CV_32FC3);
         Mat region_depth = Mat_<double>::zeros(thread_region_size);
+        Mat region_albedo = Mat::zeros(thread_region_size, CV_32FC3);
+        Mat region_normal = Mat::zeros(thread_region_size, CV_32FC3);
 
         Point3d origin = current_camera->getPos();
 
@@ -142,12 +144,26 @@ void Renderer::renderThread(const int id)
                 // spdlog::info("Thread {} rendered pixel {}x{} (d={})", id, i, j, distance);
                 region_depth.at<double>(j, i) = distance;
                 region_thread.at<Vec3f>(j, i) = color;
+
+                if (hit_obj != nullptr)
+                {
+                    region_albedo.at<Vec3f>(j, i) = hit_obj->getColor();
+                    Point3d normal = hit_obj->getNormal(current_camera->getPos() + dir * distance);
+                    region_normal.at<Vec3f>(j, i) = Vec3f(normal.x, normal.y, normal.z);
+                }
+                else
+                {
+                    region_albedo.at<Vec3f>(j, i) = Vec3f(0, 0, 0);
+                    region_normal.at<Vec3f>(j, i) = Vec3f(0, 0, 0);
+                }
             }
         }
 
         // output->writeAlbedo(start, region);
         output->writeDepth(start, region_depth);
         output->writeThreads(start, region_thread);
+        output->writeAlbedo(start, region_albedo);
+        output->writeNormals(start, region_normal);
         spdlog::info("Thread {} finished rendering region.", id);
     }
 
@@ -205,24 +221,11 @@ found_region:
 
 bool Renderer::requestObjectsInRegion(const int thread_id, const Vec2i start, const Vec2i end, std::vector<std::shared_ptr<const Object>> &objects)
 {
-
     return false;
 }
 
 void Renderer::clearThreads()
 {
-    for (auto t : threads)
-    {
-        try
-        {
-            t->~thread();
-        }
-        catch (const std::exception &e)
-        {
-            spdlog::error("Failed to delete thread: {}", e.what());
-        }
-    }
-
     threads = {};
     threads_render_status = {};
 }
@@ -252,6 +255,7 @@ bool Renderer::ray(RaySettings settings, double &distance, std::shared_ptr<const
         }
         else if (distance > settings.far)
         {
+            out_close_object = nullptr;
             return false;
         }
     }

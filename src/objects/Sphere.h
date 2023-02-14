@@ -6,13 +6,17 @@
 
 using namespace cv;
 
-namespace Glucose {
-    class Sphere : public Object {
-        private:
-            double radius;
+namespace Glucose
+{
+    class Sphere : public Object
+    {
+    private:
+        double radius;
 
-        public:
-            Sphere(Point3d position, double radius);
-            long double getDistance(Point3d pos) const;
+    public:
+        Sphere(Point3d position, double radius);
+        long double getDistance(Point3d pos) const;
+        Vec3f getColor() const;
+        Point3d getNormal(Point3d pos) const;
     };
-};
+}
